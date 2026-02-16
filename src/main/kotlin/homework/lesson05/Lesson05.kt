@@ -1,6 +1,8 @@
 package homework.lesson05
 
 import homework.lesson05.Lesson05.Stock
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlin.math.min
 
 class Lesson05 {
@@ -70,6 +72,82 @@ class Lesson05 {
             times = 1
         }
     }
+
+    data class ScheduleEntity(val lesson: String, val startTime: LocalTime, val endTime: LocalTime)
+
+    enum class Days {
+        MONDAY,
+        TUESDAY,
+        WEDNESDAY,
+        THURSDAY,
+        FRIDAY,
+        SATURDAY,
+        SUNDAY
+    }
+
+    class Schedule {
+
+        private val scheduleOfWeek = mutableMapOf<Days, MutableList<ScheduleEntity>>()
+        private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+        fun addSchedule(day: Days, scheduleEntity: ScheduleEntity) {
+            scheduleOfWeek.getOrPut(day) { mutableListOf() }.add(scheduleEntity)
+        }
+
+        override fun toString(): String {
+            return scheduleOfWeek.toSortedMap()
+                .map { (day, list) ->
+                    list.sortedBy { it.startTime }
+                        .joinToString("\n") {
+                            "%-15s${it.startTime.format(timeFormatter)} - ${
+                                it.endTime.format(
+                                    timeFormatter
+                                )
+                            }".format("\t${it.lesson}:")
+                        }.let {
+                            "${day.name.lowercase().replaceFirstChar { day.name[0].uppercase() }}:\n$it"
+                        }
+                }.joinToString("\n\n")
+        }
+
+        private var day: Days? = null
+
+        operator fun invoke(fnc: Schedule.() -> Unit) {
+            fnc()
+        }
+
+        fun monday(fnc: () -> Unit) = addDay(Days.MONDAY, fnc)
+
+        fun tuesday(fnc: () -> Unit) = addDay(Days.TUESDAY, fnc)
+
+        fun wednesday(fnc: () -> Unit) = addDay(Days.WEDNESDAY, fnc)
+
+        fun thursday(fnc: () -> Unit) = addDay(Days.THURSDAY, fnc)
+
+        fun friday(fnc: () -> Unit) = addDay(Days.FRIDAY, fnc)
+
+        fun saturday(fnc: () -> Unit) = addDay(Days.SATURDAY, fnc)
+
+        fun sunday(fnc: () -> Unit) = addDay(Days.SUNDAY, fnc)
+
+        operator fun String.rangeTo(time: String): Pair<LocalTime, LocalTime> {
+            return LocalTime.parse(this, timeFormatter) to
+                    LocalTime.parse(time, timeFormatter)
+        }
+
+        infix fun Pair<LocalTime, LocalTime>.schedule(lesson: String) {
+            addSchedule(
+                day ?: throw IllegalStateException("Не задан день недели"),
+                ScheduleEntity(lesson, first, second)
+            )
+        }
+
+        private fun addDay(day: Days, fnc: () -> Unit) {
+            this.day = day
+            fnc()
+            this.day = null
+        }
+    }
 }
 
 fun main() {
@@ -78,6 +156,26 @@ fun main() {
         3 x "bread" x 200 x 30.0
         "bread" x 250 x 38.0
         "apple" x 1000 x 200.0
+    }
+
+    val schedule = Lesson05.Schedule()
+
+    schedule {
+        monday {
+            "09:00".."11:00" schedule "Math"
+        }
+        tuesday {
+            "09:00".."11:00" schedule "Atr"
+        }
+        wednesday {
+            "09:00".."11:00" schedule "Math"
+        }
+        thursday {
+            "09:00".."11:00" schedule "Engl"
+        }
+        friday {
+            "09:00".."11:00" schedule "History"
+        }
     }
 }
 
